@@ -8,6 +8,21 @@
 
 typedef uint64_t mem_addr;
 
+typedef enum {
+    DTM_U8,
+    DTM_U16,
+    DTM_U32,
+    DTM_U64,
+    DTM_I8,
+    DTM_I16,
+    DTM_I32,
+    DTM_I64,
+    DTM_FLOAT,
+    DTM_DOUBLE,
+} DatatypeMode;
+
+extern std::vector<std::pair<DatatypeMode, std::string>> datatypeModeStringMap;
+
 class MemoryTool {
 public:
     MemoryTool();
@@ -37,6 +52,9 @@ public:
 
     void print_regions() const;
     void clear_results();
+
+    void set_datatype_mode(DatatypeMode mode);
+    DatatypeMode get_datatype_mode() const;
     
     std::vector<mem_addr> list_search_results() const;
 private:
@@ -51,6 +69,8 @@ private:
 
     bool attach_process() const;
     bool detach_process() const;
+    
+    DatatypeMode _datatype_mode = DTM_U32;
     std::map<std::string, std::vector<uint8_t>> _mem; // key = addr_start-addr_end
     std::set<mem_addr> _search_results;
     int _pid;

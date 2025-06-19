@@ -3,21 +3,17 @@
 
 #include "mem_tool.hh"
 
-void display_menu() {
-    std::cout << "---- Memory Tool ----\n";
-    std::cout << "1. Search\n";
-    std::cout << "2. Clear Results\n";
-    std::cout << "3. Write to memory (by list)\n";
-    std::cout << "4. Write to memory (by address)\n";
-    std::cout << "\nEnter your choice: ";
+void display_menu(DatatypeMode datatype_mode) {
+    std::cout << "\n---- Memory Tool ----\n"
+              << "1. Search\n"
+              << "2. Write to memory (by list)\n"
+              << "3. Write to memory (by address)\n"
+              << std::format("4. Set datatype mode (currently set to {:s})\n", 
+                             datatypeModeStringMap[datatype_mode].second)
+              << "5. List Results\n"
+              << "6. Clear Results\n"
+              << "\nEnter your choice: ";
 }
-
-// TODO add setting to search values by hex or decimal (even better,
-// automatically treat as hex when prefixed with 0x)
-
-// TODO add setting to switch between searching data types
-
-// TODO multi-threading support? (big dick points)
 
 int main(int argc, const char** argv) {
     const uint32_t pid = strtoul(argv[1], NULL, 0);
@@ -27,16 +23,19 @@ int main(int argc, const char** argv) {
     
     bool running = true;
     
-    int choice;
     while (running) {
+        int choice;
         int dump_res;
-        // re-read the memory before every action
+        // update memory dump before every action
         if ( (dump_res = mem_tool.dump(pid) == -1) ){
             perror("MemoryTool.dump");
             running = false;
             continue;
         } 
-        display_menu();
+
+        DatatypeMode datatype_mode = mem_tool.get_datatype_mode();
+        std::string datatype_mode_str = datatypeModeStringMap[datatype_mode].second;
+        display_menu(datatype_mode);
         std::cin >> choice;
 
         if (std::cin.fail()) {
@@ -51,13 +50,22 @@ int main(int argc, const char** argv) {
                 uint16_t val;
                 std::cout << "Enter a value to search for: ";
                 std::cin >> std::dec >> val;
-                mem_tool.search(val);
+                switch (datatype_mode) {
+                    case DTM_U8:
+                        mem_tool.search((uint8_t)val);
+                        break;
+                    case DTM_U16:
+                        mem_tool.search((uint16_t)val);
+                        break;
+                    default:
+                        std::cout << std::format("Warning: datatype mode {:s} not yet implemented for searching, falling back to uint16_t...\n", 
+                                                 datatype_mode_str);
+                        mem_tool.search((uint16_t)val);
+                        break;
+                }
                 break;
             }
             case 2:
-                mem_tool.clear_results();
-                break;
-            case 3:
                 {
                     uint32_t val;
                     uint32_t addr_selection = -1;
@@ -65,16 +73,36 @@ int main(int argc, const char** argv) {
                     std::cout << "Enter a value to write: ";
                     std::cin >> std::dec >> val;
                     std::vector<mem_addr> addrs = mem_tool.list_search_results();
-                    while (addr_selection < 0 || addr_selection > addrs.size()) {
+                    while (addr_selection <= 0 || addr_selection > addrs.size()) {
                         std::cout << "Enter the number of the address to write to: ";
                         std::cin >> addr_selection;
-                        addr = addrs[addr_selection-1];
+                        if (addr_selection <= 0 || addr_selection > addrs.size()) {
+                            std::cout << "Invalid option selected...\n";
+                        }
                     }
-                    std::cout << std::format("writing to address: 0x{:X}\n", addr);
-                    mem_tool.write(val, addr);
+                    addr = addrs[addr_selection-1];
+                    switch (datatype_mode) {
+                        case DTM_U8:
+                            mem_tool.write((uint8_t)val, addr);
+                            break;
+                        case DTM_U16:
+                            mem_tool.write((uint16_t)val, addr);
+                            break;
+                        case DTM_U32:
+                            mem_tool.write((uint32_t)val, addr);
+                            break;
+                        case DTM_U64:
+                            mem_tool.write((uint64_t)val, addr);
+                            break;
+                        default:
+                            std::cout << std::format("Warning: datatype mode {:s} not yet implemented, falling back to uint32_t...\n", 
+                                                     datatype_mode_str);
+                            mem_tool.write((uint32_t)val, addr);
+                            break;
+                    }
                     break;
                 }
-            case 4:
+            case 3:
                 {
                     uint32_t val;
                     mem_addr addr;
@@ -82,10 +110,50 @@ int main(int argc, const char** argv) {
                     std::cin >> val;
                     std::cout << "Enter an address to write to: ";
                     std::cin >> std::hex >> addr;
-                    std::cout << "addr: " << std::format("0x{:x}", addr)<< "\n";
-                    mem_tool.write(val, addr);
+                    switch (datatype_mode) {
+                        case DTM_U8:
+                            mem_tool.write((uint8_t)val, addr);
+                            break;
+                        case DTM_U16:
+                            mem_tool.write((uint16_t)val, addr);
+                            break;
+                        case DTM_U32:
+                            mem_tool.write((uint32_t)val, addr);
+                            break;
+                        case DTM_U64:
+                            mem_tool.write((uint64_t)val, addr);
+                            break;
+                        default:
+                            std::cout << std::format("Warning: datatype mode {:s} not yet implemented, falling back to uint32_t...\n", 
+                                                     datatype_mode_str);
+                            mem_tool.write((uint32_t)val, addr);
+                            break;
+                    }
                     break;
                 }
+            case 4:
+                { 
+                    uint32_t choice_opt = -1;
+                    int i = 0;
+                    for (const auto& [mode, str] : datatypeModeStringMap)
+                        std::cout <<  std::format("{:d}. {:s}\n", ++i, str);
+                    while (choice_opt <= 0 || choice_opt > datatypeModeStringMap.size()) {
+                        std::cout << std::endl << "Enter the number to select the datatype you wish you read/write: ";
+                        std::cin >> choice_opt; 
+                        if (choice_opt <= 0 || choice_opt > datatypeModeStringMap.size()) {
+                            std::cout << "Invalid option selected...\n";
+                        }
+                    }
+                    DatatypeMode mode = datatypeModeStringMap[choice_opt-1].first;
+                    mem_tool.set_datatype_mode(mode);
+                    break;
+                }
+            case 5: 
+                mem_tool.list_search_results();
+                break;
+            case 6:
+                mem_tool.clear_results();
+                break;
             default:
                 std::cout << "Invalid choice. Please try again.\n";
                 break;

@@ -12,6 +12,19 @@
 
 static const size_t WORD_SIZE = sizeof(long);
 
+std::vector<std::pair<DatatypeMode, std::string>> datatypeModeStringMap = {
+    {DTM_U8,     "uint8_t" },
+    {DTM_U16,    "uint16_t"},
+    {DTM_U32,    "uint32_t"},
+    {DTM_U64,    "uint64_t"},
+    {DTM_I8,     "int8_t"  },
+    {DTM_I16,    "int16_t" },
+    {DTM_I32,    "int32_t" },
+    {DTM_I64,    "int64_t" },
+    {DTM_FLOAT,  "float"   },
+    {DTM_DOUBLE, "double"  },
+};
+
 static std::vector<std::string> split_string(const std::string& str, const std::string& delim) {
     std::vector<std::string> res;
     std::string s = str;
@@ -315,11 +328,11 @@ void MemoryTool::write(uint32_t val, uint64_t addr) const {
         ((word >> 48) & 0xFF),
         ((word >> 56) & 0xFF),
     };
-
-    bytes[byte_offset] = val & 0xFF;
-    bytes[byte_offset+1] = val >> 8;
-    bytes[byte_offset+2] = val >> 16;
-    bytes[byte_offset+3] = val >> 24;
+    std::cout << std::format("byte offset: {:d}\n", byte_offset);
+    bytes[byte_offset] =   (val >>  0) & 0xFF;
+    bytes[byte_offset+1] = (val >>  8) & 0xFF;
+    bytes[byte_offset+2] = (val >> 16) & 0xFF;
+    bytes[byte_offset+3] = (val >> 24) & 0xFF;
 
     word = 
         bytes[0] | 
@@ -332,7 +345,7 @@ void MemoryTool::write(uint32_t val, uint64_t addr) const {
         (bytes[7] << 56);
 
     std::cout << std::format("0x{:016X}: ", addr);
-    for (auto b : bytes) {
+    for (const auto& b : bytes) {
         std::cout << std::format("{:02X} ", b);
     }
     std::cout << std::endl;
@@ -401,6 +414,10 @@ bool MemoryTool::attach_process() const {
 
 std::vector<mem_addr> MemoryTool::list_search_results() const {
     std::vector<mem_addr> res;
+    if (_search_results.size() == 0) {
+        std::cout << "There are no search results...\n";
+        return {};
+    }
     int i = 0;
     for (const mem_addr addr : _search_results) {
         std::cout << std::format("{:d}. 0x{:x}\n", ++i, addr);
@@ -419,3 +436,12 @@ void MemoryTool::clear_results() {
     std::cout << "search results cleared...\n";
 }
 
+
+void MemoryTool::set_datatype_mode(DatatypeMode mode) {
+    std::cout << std::format("set datatype mode to: {:s}\n", datatypeModeStringMap[mode].second);
+    _datatype_mode = mode;
+}
+
+DatatypeMode MemoryTool::get_datatype_mode() const {
+    return _datatype_mode;
+}
