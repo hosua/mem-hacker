@@ -104,7 +104,6 @@ bool MemoryTool::search(byte val) {
                 offset++;
             }
         }
-        
         // std::cout << "SEARCH RESULTS\n";
         // for (const mem_addr addr : _search_results) {
         //     std::cout << std::format("0x{:x}", addr) << "\n";
@@ -112,14 +111,6 @@ bool MemoryTool::search(byte val) {
         std::cout << "Found " << _search_results.size() << " results.\n";
     } else {
         // search existing
-        // for (const mem_addr& addr : _search_results) {
-        //     byte b = read_byte_at(addr);
-        //     std::cout << "read byte: " 
-        //         << std::format("{:d}", b) 
-        //         << " at " 
-        //         << std::format("0x{:x}", addr) 
-        //         << "\n";
-        // }
         std::erase_if(_search_results, [&](const mem_addr& addr) {
             byte b = read_byte_at(addr);
             if (b == val) std::cout << std::format("0x{:x}: {:d}\n", addr, b);
@@ -138,10 +129,8 @@ byte MemoryTool::read_byte_at(mem_addr addr) {
         perror("ptrace PEEKDATA");
         return -1;
     }
-    // std::cout << std::format("{:x}", data) << "\n";
     const size_t byte_offset = addr % WORD_SIZE;
     byte b = (data >> (8 * byte_offset)) & 0xFF;
-    // std::cout << std::format("{:d}", b) << "\n";
     return b;
 }
 
@@ -159,10 +148,65 @@ bool MemoryTool::detach_process() const {
     return (res == 0);
 }
 
-void MemoryTool::write(byte val, uint64_t addr) const {
+void MemoryTool::clear_results() {
+    _mem = {};
+}
+
+std::vector<mem_addr> MemoryTool::list_search_results() const {
+    std::vector<mem_addr> res;
+    int i = 0;
+    for (const mem_addr addr : _search_results) {
+        std::cout << std::format("{:d}. 0x{:x}\n", ++i, addr);
+        res.push_back(addr);
+    }
+    return res;
+}
+
+void MemoryTool::write(uint8_t val, uint64_t addr) const {
     attach_process();
     mem_addr aligned_addr = addr & ~(WORD_SIZE - 1);
-    int res = ptrace(PTRACE_POKEDATA, _pid, (void*)addr, (void*)(long)val);
+    size_t byte_offset = addr % WORD_SIZE;
+    errno = 0;
+    long word = ptrace(PTRACE_PEEKDATA, _pid, (void*)aligned_addr, nullptr);
+    if (word == -1 && errno != 0) {
+        perror("ptrace PEEKDATA");
+        exit(EXIT_FAILURE);
+    }
+    
+    std::cout << "byte offset: " << byte_offset << "\n";
+    std::cout << std::format("word: {:X}\n", word);
+    std::vector<uint64_t> bytes = {
+        static_cast<unsigned long>((word) & 0xFF),
+        static_cast<unsigned long>((word >> 8) & 0xFF),
+        static_cast<unsigned long>((word >> 16) & 0xFF),
+        static_cast<unsigned long>((word >> 24) & 0xFF),
+        static_cast<unsigned long>((word >> 32) & 0xFF),
+        static_cast<unsigned long>((word >> 40) & 0xFF),
+        static_cast<unsigned long>((word >> 48) & 0xFF),
+        static_cast<unsigned long>((word >> 56) & 0xFF),
+    };
+
+    for (auto b : bytes) {
+        std::cout << std::format("{:02X} ", b);
+    }
+    std::cout << " => ";
+
+    word = 
+        bytes[0] | 
+        (bytes[1] << 8) | 
+        (bytes[2] << 16) | 
+        (bytes[3] << 24) | 
+        (bytes[4] << 32) |
+        (bytes[5] << 40) |
+        (bytes[6] << 48) |
+        (bytes[7] << 56);
+    // std::cout << std::format("word: {:X}\n", word);
+    for (auto b : bytes) {
+        std::cout << std::format("{:02X} ", b);
+    }
+    std::cout << "\n";
+
+    int res = ptrace(PTRACE_POKEDATA, _pid, (void*)aligned_addr, (void*)word);
     if (res == -1) {
         perror("ptrace POKEDATA");
         exit(EXIT_FAILURE);
@@ -170,6 +214,146 @@ void MemoryTool::write(byte val, uint64_t addr) const {
     detach_process();
 }
 
-void MemoryTool::clear_results() {
-    _mem.clear();
+void MemoryTool::write(uint16_t val, uint64_t addr) const {
+    attach_process();
+    mem_addr aligned_addr = addr & ~(WORD_SIZE - 1);
+    size_t byte_offset = addr % WORD_SIZE;
+    errno = 0;
+    long word = ptrace(PTRACE_PEEKDATA, _pid, (void*)aligned_addr, nullptr);
+    if (word == -1 && errno != 0) {
+        perror("ptrace PEEKDATA");
+        exit(EXIT_FAILURE);
+    }
+    
+    std::vector<int64_t> bytes = {
+        (word & 0xFF),
+        ((word >> 8) & 0xFF),
+        ((word >> 16) & 0xFF),
+        ((word >> 24) & 0xFF),
+        ((word >> 32) & 0xFF),
+        ((word >> 40) & 0xFF),
+        ((word >> 48) & 0xFF),
+        ((word >> 56) & 0xFF),
+    };
+
+    bytes[byte_offset] = val & 0xFF;
+    bytes[byte_offset+1] = val >> 8;
+
+    word = 
+        bytes[0] | 
+        (bytes[1] << 8) | 
+        (bytes[2] << 16) | 
+        (bytes[3] << 24) | 
+        (bytes[4] << 32) |
+        (bytes[5] << 40) |
+        (bytes[6] << 48) |
+        (bytes[7] << 56);
+    std::cout << std::format("0x{:016X}: ", addr);
+    for (auto b : bytes) {
+        std::cout << std::format("{:02X} ", b);
+    }
+    std::cout << std::endl;
+
+    int res = ptrace(PTRACE_POKEDATA, _pid, (void*)aligned_addr, (void*)word);
+    if (res == -1) {
+        perror("ptrace POKEDATA");
+        exit(EXIT_FAILURE);
+    }
+    detach_process();
+}
+
+void MemoryTool::write(uint32_t val, uint64_t addr) const {
+    attach_process();
+    mem_addr aligned_addr = addr & ~(WORD_SIZE - 1);
+    size_t byte_offset = addr % WORD_SIZE;
+    errno = 0;
+    long word = ptrace(PTRACE_PEEKDATA, _pid, (void*)aligned_addr, nullptr);
+    if (word == -1 && errno != 0) {
+        perror("ptrace PEEKDATA");
+        exit(EXIT_FAILURE);
+    }
+    
+    std::vector<int64_t> bytes = {
+        ((word >>  0) & 0xFF),
+        ((word >>  8) & 0xFF),
+        ((word >> 16) & 0xFF),
+        ((word >> 24) & 0xFF),
+        ((word >> 32) & 0xFF),
+        ((word >> 40) & 0xFF),
+        ((word >> 48) & 0xFF),
+        ((word >> 56) & 0xFF),
+    };
+
+    bytes[byte_offset] = val & 0xFF;
+    bytes[byte_offset+1] = val >> 8;
+    bytes[byte_offset+2] = val >> 16;
+    bytes[byte_offset+3] = val >> 24;
+
+    word = 
+        bytes[0] | 
+        (bytes[1] << 8) | 
+        (bytes[2] << 16) | 
+        (bytes[3] << 24) | 
+        (bytes[4] << 32) |
+        (bytes[5] << 40) |
+        (bytes[6] << 48) |
+        (bytes[7] << 56);
+
+    std::cout << std::format("0x{:016X}: ", addr);
+    for (auto b : bytes) {
+        std::cout << std::format("{:02X} ", b);
+    }
+    std::cout << std::endl;
+
+    int res = ptrace(PTRACE_POKEDATA, _pid, (void*)aligned_addr, (void*)word);
+    if (res == -1) {
+        perror("ptrace POKEDATA");
+        exit(EXIT_FAILURE);
+    }
+    detach_process();
+}
+
+void MemoryTool::write(uint64_t val, uint64_t addr) const {
+    attach_process();
+    errno = 0;
+    mem_addr aligned_addr = addr & ~(WORD_SIZE - 1);
+    long word = ptrace(PTRACE_PEEKDATA, _pid, (void*)aligned_addr, nullptr);
+    if (word == -1 && errno != 0) {
+        perror("ptrace PEEKDATA");
+        exit(EXIT_FAILURE);
+    }
+    
+    std::vector<uint64_t> bytes = {
+        (val >>  0) & 0xFF,
+        (val >>  8) & 0xFF,
+        (val >> 16) & 0xFF,
+        (val >> 24) & 0xFF,
+        (val >> 32) & 0xFF,
+        (val >> 40) & 0xFF,
+        (val >> 48) & 0xFF,
+        (val >> 56) & 0xFF,
+    };
+
+    word = 
+        bytes[0] | 
+        (bytes[1] << 8) | 
+        (bytes[2] << 16) | 
+        (bytes[3] << 24) | 
+        (bytes[4] << 32) |
+        (bytes[5] << 40) |
+        (bytes[6] << 48) |
+        (bytes[7] << 56);
+
+    std::cout << std::format("0x{:016X}: ", addr);
+    for (auto b : bytes) {
+        std::cout << std::format("{:02X} ", b);
+    }
+    std::cout << std::endl;
+
+    int res = ptrace(PTRACE_POKEDATA, _pid, (void*)aligned_addr, (void*)word);
+    if (res == -1) {
+        perror("ptrace POKEDATA");
+        exit(EXIT_FAILURE);
+    }
+    detach_process();
 }

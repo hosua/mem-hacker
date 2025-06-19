@@ -16,15 +16,17 @@ public:
     ~MemoryTool();
     
     int read(int pid); // dumps memory from pid into _mem
-    void write(byte val, uint64_t addr) const;
+    void write(uint8_t val, uint64_t addr) const;
+    void write(uint16_t val, uint64_t addr) const;
+    void write(uint32_t val, uint64_t addr) const;
+    void write(uint64_t val, uint64_t addr) const;
     // later, we'll want to implement overloads for different width integers/datatypes
-    bool search(byte val); 
-    // search will search for matching bytes in _mem and stores them in _search_results.
-    // If _search_results is non-empty, it will only search _search_results for
-    // val. This is so the user can narrow down an address that they are looking for.
+    bool search(byte val); // searches existing results if some are stored
 
     void print_regions() const;
     void clear_results();
+    
+    std::vector<mem_addr> list_search_results() const;
 private:
     byte read_byte_at(mem_addr addr) ;
     bool attach_process() const;
