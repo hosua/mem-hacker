@@ -1,6 +1,5 @@
 #include <format>
 #include <iostream>
-#include <sstream>
 
 #include "mem_tool.hh"
 
@@ -10,20 +9,33 @@ void display_menu() {
     std::cout << "2. Clear Results\n";
     std::cout << "3. Write to memory (by list)\n";
     std::cout << "4. Write to memory (by address)\n";
-    std::cout << "Enter your choice: ";
+    std::cout << "\nEnter your choice: ";
 }
+
+// TODO add setting to search values by hex or decimal (even better,
+// automatically treat as hex when prefixed with 0x)
+
+// TODO add setting to switch between searching data types
+
+// TODO multi-threading support? (big dick points)
 
 int main(int argc, const char** argv) {
     const uint32_t pid = strtoul(argv[1], NULL, 0);
-    std::cout << pid << "\n";
+    std::cout << std::format("attaching to process {:d}...\n\n", pid);
 
     MemoryTool mem_tool;
-    mem_tool.read(pid);
     
     bool running = true;
     
     int choice;
     while (running) {
+        int dump_res;
+        // re-read the memory before every action
+        if ( (dump_res = mem_tool.dump(pid) == -1) ){
+            perror("MemoryTool.dump");
+            running = false;
+            continue;
+        } 
         display_menu();
         std::cin >> choice;
 
@@ -36,9 +48,9 @@ int main(int argc, const char** argv) {
         switch (choice) {
             case 1:
             {
-                int val;
+                uint16_t val;
                 std::cout << "Enter a value to search for: ";
-                std::cin >> val;
+                std::cin >> std::dec >> val;
                 mem_tool.search(val);
                 break;
             }
@@ -47,18 +59,18 @@ int main(int argc, const char** argv) {
                 break;
             case 3:
                 {
-                    std::string input;
-                    uint64_t val;
+                    uint32_t val;
                     uint32_t addr_selection = -1;
                     mem_addr addr;
                     std::cout << "Enter a value to write: ";
-                    std::cin >> input;
+                    std::cin >> std::dec >> val;
                     std::vector<mem_addr> addrs = mem_tool.list_search_results();
                     while (addr_selection < 0 || addr_selection > addrs.size()) {
                         std::cout << "Enter the number of the address to write to: ";
                         std::cin >> addr_selection;
                         addr = addrs[addr_selection-1];
                     }
+                    std::cout << std::format("writing to address: 0x{:X}\n", addr);
                     mem_tool.write(val, addr);
                     break;
                 }
@@ -79,6 +91,4 @@ int main(int argc, const char** argv) {
                 break;
         }
     }
-    
-    // ptrace(PTRACE_POKEDATA, pid, (void*)0x55cbf9a2a174, 0xFFFFF);
 }
