@@ -105,27 +105,59 @@ uint16_t MemoryTool::read_uint16_at(mem_addr addr) const {
     const mem_addr aligned_addr = addr & ~(WORD_SIZE - 1);
 
     errno = 0;
-    uint64_t lo_word = ptrace(PTRACE_PEEKDATA, _pid, (void*)aligned_addr, nullptr);
-    if (lo_word == -1ULL && errno != 0) {
+    uint64_t lo = ptrace(PTRACE_PEEKDATA, _pid, (void*)aligned_addr, nullptr);
+    if (lo == -1ULL && errno != 0) {
         perror("ptrace PEEKDATA");
         return 0;
     }
 
     if (byte_offset <= WORD_SIZE - sizeof(uint16_t)) {
-        return (lo_word >> (8 * byte_offset)) & 0xFFFF;
+        return (lo >> (8 * byte_offset)) & 0xFFFF;
     }
 
     // Crosses boundary — need next word
     errno = 0;
-    uint64_t hi_word = ptrace(PTRACE_PEEKDATA, _pid, (void*)(aligned_addr + WORD_SIZE), nullptr);
-    if (hi_word == -1ULL && errno != 0) {
+    uint64_t hi = ptrace(PTRACE_PEEKDATA, _pid, (void*)(aligned_addr + WORD_SIZE), nullptr);
+    if (hi == -1ULL && errno != 0) {
         perror("ptrace PEEKDATA (next word)");
         return 0;
     }
 
-    uint8_t b0 = (lo_word >> (8 * byte_offset)) & 0xFF;
-    uint8_t b1 = hi_word & 0xFF;
+    uint8_t b0 = (lo >> (8 * byte_offset)) & 0xFF;
+    uint8_t b1 = hi & 0xFF;
     return static_cast<uint16_t>(b0 | (b1 << 8));
+}
+
+uint32_t MemoryTool::read_uint32_at(mem_addr addr) const {
+    const size_t byte_offset = addr % WORD_SIZE;
+    const mem_addr aligned_addr = addr & ~(WORD_SIZE - 1);
+    errno = 0;
+    uint64_t lo = ptrace(PTRACE_PEEKDATA, _pid, (void*)aligned_addr, nullptr);
+    if (lo == -1ULL && errno != 0) {
+        perror("ptrace PEEKDATA");
+        return 0;
+    }
+
+    if (byte_offset <= WORD_SIZE - sizeof(uint32_t)) {
+        return (lo >> (8 * byte_offset)) & 0xFFFF;
+    }
+
+    errno = 0;
+    uint64_t hi = ptrace(PTRACE_PEEKDATA, _pid, (void*)(aligned_addr + WORD_SIZE), nullptr);
+    if (hi == -1ULL && errno != 0) {
+        perror("ptrace PEEKDATA (next word)");
+        return 0;
+    }
+
+    uint32_t res = 0;
+    for (int i = 0; i < 4; ++i) {
+        uint8_t byte = (byte_offset + i) < WORD_SIZE ?
+            (lo >> (8 * (byte_offset + i))) & 0xFF 
+            :
+            (hi >> (8 * (byte_offset + i - WORD_SIZE))) & 0xFF;
+        res |= byte << (8 * i);
+    }
+    return res;
 }
 
 /* SEARCH METHODS */
@@ -192,9 +224,49 @@ bool MemoryTool::search(uint16_t val) {
     } else {
         // search existing
         std::erase_if(_search_results, [&](const mem_addr& addr) {
-            uint16_t byte = read_uint16_at(addr);
-            if (byte == val) std::cout << std::format("0x{:x}: {:d}\n", addr, byte);
-            return byte != val;
+            uint16_t data = read_uint16_at(addr);
+            if (data == val) std::cout << std::format("0x{:x}: {:d}\n", addr, data);
+            return data != val;
+        });
+        std::cout << _search_results.size() << " results remain.\n";
+    }
+    detach_process();
+    return true;
+}
+
+bool MemoryTool::search(uint32_t val) {
+    std::cout << "searching uint32_t...\n";
+    attach_process();
+    // clean search
+    if (_search_results.size() == 0) {
+        for (const auto& [region, bytes] : _mem) {
+            std::vector<std::string> start_end = split_string(region, "-");
+            const mem_addr addr_start = std::stoull(start_end[0], nullptr, 16),
+                           addr_end = std::stoull(start_end[1], nullptr, 16);
+            
+            for (int offset = 0; offset < bytes.size()-3; ++offset) {
+                const mem_addr addr = addr_start + offset;
+                const uint8_t b1 = bytes[offset], 
+                    b2 = bytes[offset+1],
+                    b3 = bytes[offset+2],
+                    b4 = bytes[offset+3];
+                const uint32_t other_val = b1 | (b2 << 8) | (b3 << 16) | (b4 << 24);
+                if (val == other_val){ 
+                    _search_results.insert(addr);
+                }
+            }
+        }
+        // std::cout << "SEARCH RESULTS\n";
+        // for (const mem_addr& addr : _search_results) {
+        //     std::cout << std::format("0x{:x}: {:d}", addr, read_uint16_at(addr)) << "\n";
+        // }
+        std::cout << "Found " << _search_results.size() << " results.\n";
+    } else {
+        // search existing
+        std::erase_if(_search_results, [&](const mem_addr& addr) {
+            uint32_t data = read_uint32_at(addr);
+            if (data == val) std::cout << std::format("0x{:x}: {:d}\n", addr, data);
+            return data != val;
         });
         std::cout << _search_results.size() << " results remain.\n";
     }

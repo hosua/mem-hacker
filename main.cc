@@ -47,7 +47,7 @@ int main(int argc, const char** argv) {
         switch (choice) {
             case 1:
             {
-                uint16_t val;
+                uint64_t val;
                 std::cout << "Enter a value to search for: ";
                 std::cin >> std::dec >> val;
                 switch (datatype_mode) {
@@ -57,8 +57,11 @@ int main(int argc, const char** argv) {
                     case DTM_U16:
                         mem_tool.search((uint16_t)val);
                         break;
+                    case DTM_U32:
+                        mem_tool.search((uint32_t)val);
+                        break;
                     default:
-                        std::cout << std::format("Warning: datatype mode {:s} not yet implemented for searching, falling back to uint16_t...\n", 
+                        std::cout << std::format("Warning: datatype mode {:s} not yet implemented for searching, falling back to uint32_t...\n", 
                                                  datatype_mode_str);
                         mem_tool.search((uint16_t)val);
                         break;
@@ -67,7 +70,7 @@ int main(int argc, const char** argv) {
             }
             case 2:
                 {
-                    uint32_t val;
+                    uint64_t val;
                     uint32_t addr_selection = -1;
                     mem_addr addr;
                     std::cout << "Enter a value to write: ";
@@ -104,7 +107,7 @@ int main(int argc, const char** argv) {
                 }
             case 3:
                 {
-                    uint32_t val;
+                    uint64_t val;
                     mem_addr addr;
                     std::cout << "Enter a value to write: ";
                     std::cin >> val;
