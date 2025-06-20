@@ -140,7 +140,7 @@ uint32_t MemoryTool::read_uint32_at(mem_addr addr) const {
     }
 
     if (byte_offset <= WORD_SIZE - sizeof(uint32_t)) {
-        return (lo >> (8 * byte_offset)) & 0xFFFF;
+        return (lo >> (8 * byte_offset)) & 0xFFFFFFFF;
     }
 
     errno = 0;
@@ -163,7 +163,6 @@ uint32_t MemoryTool::read_uint32_at(mem_addr addr) const {
     return res;
 }
 
-// TODO: UNTESTED!
 uint64_t MemoryTool::read_uint64_at(mem_addr addr) const {
     const size_t byte_offset = addr % WORD_SIZE;
     const mem_addr aligned_addr = addr & ~(WORD_SIZE - 1);
@@ -174,8 +173,8 @@ uint64_t MemoryTool::read_uint64_at(mem_addr addr) const {
         return 0;
     }
 
-    if (byte_offset <= WORD_SIZE - sizeof(uint32_t)) {
-        return (lo >> (8 * byte_offset)) & 0xFFFFFFFF;
+    if (byte_offset <= WORD_SIZE - sizeof(uint64_t)) {
+        return (lo >> (8 * byte_offset));
     }
 
     errno = 0;
@@ -185,7 +184,7 @@ uint64_t MemoryTool::read_uint64_at(mem_addr addr) const {
         return 0;
     }
 
-    uint32_t res = 0;
+    uint64_t res = 0;
     for (int i = 0; i < 8; ++i) {
         uint8_t byte = 
             (byte_offset + i) < WORD_SIZE ?
@@ -193,7 +192,7 @@ uint64_t MemoryTool::read_uint64_at(mem_addr addr) const {
             :
             (hi >> (8 * (byte_offset + i - WORD_SIZE))) & 0xFF;
 
-        res |= byte << (8 * i);
+        res |= static_cast<uint64_t>(byte) << (8 * i);
     }
     return res;
 }
@@ -322,13 +321,8 @@ bool MemoryTool::search(uint64_t val) {
                 }
             }
         }
-        // std::cout << "SEARCH RESULTS\n";
-        // for (const mem_addr& addr : _search_results) {
-        //     std::cout << std::format("0x{:x}: {:d}", addr, read_uint16_at(addr)) << "\n";
-        // }
         std::cout << "Found " << _search_results.size() << " results.\n";
     } else {
-        // search existing
         std::erase_if(_search_results, [&](const mem_addr& addr) {
             uint64_t data = read_uint64_at(addr);
             if (data == val) std::cout << std::format("0x{:x}: {:d}\n", addr, data);
@@ -340,12 +334,10 @@ bool MemoryTool::search(uint64_t val) {
     return true;
 }
 
-// TODO Most likely not working at all atm
 // TODO: We need to approximate how we search for floats for this to be useful 
 bool MemoryTool::search(float val) {
     std::cout << "searching float...\n";
     attach_process();
-    // clean search
     if (_search_results.size() == 0) {
         for (const auto& [region, bytes] : _mem) {
             std::vector<std::string> start_end = split_string(region, "-");
@@ -364,13 +356,8 @@ bool MemoryTool::search(float val) {
                 }
             }
         }
-        // std::cout << "SEARCH RESULTS\n";
-        // for (const mem_addr& addr : _search_results) {
-        //     std::cout << std::format("0x{:x}: {:d}", addr, read_uint16_at(addr)) << "\n";
-        // }
         std::cout << "Found " << _search_results.size() << " results.\n";
     } else {
-        // search existing
         std::erase_if(_search_results, [&](const mem_addr& addr) {
             float data = std::bit_cast<float>(read_uint32_at(addr));
             if (data == val) std::cout << std::format("0x{:X}: {:f}\n", addr, data);
