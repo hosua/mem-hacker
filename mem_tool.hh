@@ -33,10 +33,6 @@ public:
     void write(uint16_t val, uint64_t addr) const;
     void write(uint32_t val, uint64_t addr) const;
     void write(uint64_t val, uint64_t addr) const;
-    void write(int8_t val, uint64_t addr) const;  // TODO
-    void write(int16_t val, uint64_t addr) const; // TODO
-    void write(int32_t val, uint64_t addr) const; // TODO
-    void write(int64_t val, uint64_t addr) const; // TODO
     void write(float val, uint64_t addr) const;   // TODO
     void write(double val, uint64_t addr) const;  // TODO
     
@@ -44,11 +40,8 @@ public:
     bool search(uint8_t val); 
     bool search(uint16_t val); 
     bool search(uint32_t val); 
-    bool search(uint64_t val); // TODO
-    bool search(int8_t val);   // TODO
-    bool search(int16_t val);  // TODO
-    bool search(int32_t val);  // TODO
-    bool search(int64_t val);  // TODO
+    bool search(uint64_t val); 
+    bool search(float val);
 
     void print_regions() const;
     void clear_results();
