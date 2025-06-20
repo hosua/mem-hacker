@@ -117,33 +117,38 @@ int main(int argc, const char** argv) {
                 }
             case 3:
                 {
-                    uint32_t val;
                     mem_addr addr;
                     std::cout << "Enter a value to write: ";
-                    std::cin >> val;
-                    std::cout << "Enter an address to write to: ";
-                    std::cin >> std::hex >> addr;
-                    switch (datatype_mode) {
-                        case DTM_U8:
-                            mem_tool.write(static_cast<uint8_t>(val), addr);
-                            break;
-                        case DTM_U16:
-                            mem_tool.write(static_cast<uint16_t>(val), addr);
-                            break;
-                        case DTM_U32:
-                            mem_tool.write(static_cast<uint32_t>(val), addr);
-                            break;
-                        case DTM_U64:
-                            mem_tool.write(static_cast<uint64_t>(val), addr);
-                            break;
-                        case DTM_FLOAT:
-                            mem_tool.write(std::bit_cast<float>(val), addr);
-                            break;
-                        default:
-                            std::cout << std::format("Warning: datatype mode {:s} not yet implemented, falling back to uint32_t...\n", 
-                                                     datatype_mode_str);
-                            mem_tool.write((uint32_t)val, addr);
-                            break;
+                    if (datatype_mode == DTM_FLOAT) {
+                        float val;
+                        std::cin >> val;
+                        std::cout << "Enter an address to write to: ";
+                        std::cin >> std::hex >> addr;
+                        mem_tool.write(val, addr);
+                    } else {
+                        uint64_t val;
+                        std::cin >> val;
+                        std::cout << "Enter an address to write to: ";
+                        std::cin >> std::hex >> addr;
+                        switch (datatype_mode) {
+                            case DTM_U8:
+                                mem_tool.write(static_cast<uint8_t>(val), addr);
+                                break;
+                            case DTM_U16:
+                                mem_tool.write(static_cast<uint16_t>(val), addr);
+                                break;
+                            case DTM_U32:
+                                mem_tool.write(static_cast<uint32_t>(val), addr);
+                                break;
+                            case DTM_U64:
+                                mem_tool.write(static_cast<uint64_t>(val), addr);
+                                break;
+                            default:
+                                std::cout << std::format("Warning: datatype mode {:s} not yet implemented, falling back to uint32_t...\n", 
+                                                         datatype_mode_str);
+                                mem_tool.write((uint32_t)val, addr);
+                                break;
+                        }
                     }
                     break;
                 }

@@ -1,5 +1,6 @@
 #include "mem_tool.hh"
 
+#include <cstring>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -588,29 +589,18 @@ void MemoryTool::write(float val, uint64_t addr) const {
     attach_process();
     errno = 0;
     mem_addr aligned_addr = addr & ~(WORD_SIZE - 1);
+    const size_t byte_offset = addr % WORD_SIZE;
+
     long word = ptrace(PTRACE_PEEKDATA, _pid, (void*)aligned_addr, nullptr);
     if (word == -1 && errno != 0) {
         perror("ptrace PEEKDATA");
         exit(EXIT_FAILURE);
     }
-    
-    std::array<uint32_t, 8> bytes = {
-        (std::bit_cast<uint32_t>(val) >>  0) & 0xFF,
-        (std::bit_cast<uint32_t>(val) >>  8) & 0xFF,
-        (std::bit_cast<uint32_t>(val) >> 16) & 0xFF,
-        (std::bit_cast<uint32_t>(val) >> 24) & 0xFF 
-    };
 
-    word =      bytes[0] | 
-         (bytes[1] << 8) | 
-        (bytes[2] << 16) | 
-        (bytes[3] << 24);
-
-    std::cout << std::format("0x{:016X}: ", addr);
-    for (auto b : bytes) {
-        std::cout << std::format("{:02X} ", b);
-    }
-    std::cout << std::endl;
+    uint32_t float_bits = std::bit_cast<uint32_t>(val);
+    uint8_t* bytes = reinterpret_cast<uint8_t*>(&word);
+    std::memcpy(bytes + byte_offset, &float_bits, sizeof(float));
+    std::cout << std::format("0x{:016X}: writing float {:f}\n", addr, val);
 
     int res = ptrace(PTRACE_POKEDATA, _pid, (void*)aligned_addr, (void*)word);
     if (res == -1) {
