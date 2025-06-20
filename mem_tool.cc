@@ -274,23 +274,18 @@ bool MemoryTool::search(uint32_t val) {
             
             for (int offset = 0; offset < bytes.size()-3; ++offset) {
                 const mem_addr addr = addr_start + offset;
-                const uint8_t b1 = bytes[offset], 
-                    b2 = bytes[offset+1],
-                    b3 = bytes[offset+2],
-                    b4 = bytes[offset+3];
-                const uint32_t other_val = b1 | (b2 << 8) | (b3 << 16) | (b4 << 24);
-                if (val == other_val){ 
+                const uint32_t other_val = 
+                              bytes[offset] | 
+                    (bytes[offset+1] <<  8) | 
+                    (bytes[offset+2] << 16) | 
+                    (bytes[offset+3] << 24);
+                if (val == other_val) { 
                     _search_results.insert(addr);
                 }
             }
         }
-        // std::cout << "SEARCH RESULTS\n";
-        // for (const mem_addr& addr : _search_results) {
-        //     std::cout << std::format("0x{:x}: {:d}", addr, read_uint16_at(addr)) << "\n";
-        // }
         std::cout << "Found " << _search_results.size() << " results.\n";
     } else {
-        // search existing
         std::erase_if(_search_results, [&](const mem_addr& addr) {
             uint32_t data = read_uint32_at(addr);
             if (data == val) std::cout << std::format("0x{:x}: {:d}\n", addr, data);
