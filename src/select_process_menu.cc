@@ -63,6 +63,7 @@ namespace SelectProcessMenu {
 
         menu |= CatchEvent([&](Event event) {
             if ( (Event::Character('\n') == event) ) {
+                if (filtered_proc_list.empty()) return false;
                 result = filtered_proc_list[selected];
                 std::stringstream ss(result);
                 ss >> pid;
@@ -91,6 +92,7 @@ namespace SelectProcessMenu {
                 });
             },
             .on_enter = [&] {
+                if (filtered_proc_list.empty()) return;
                 result = filtered_proc_list[selected];
                 std::stringstream ss(result);
                 ss >> pid;
