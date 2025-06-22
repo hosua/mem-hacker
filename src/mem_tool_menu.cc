@@ -164,17 +164,6 @@ namespace MemToolMenu {
             settings_window | xflex,
         });
 
-        Component final_ui = Renderer([&] {
-            if (screen.dimx() >= min_width && screen.dimy() >= min_height) {
-                return master_container->Render();
-            }
-            return vbox({
-                text("Warning: window is too small!"),
-                text("Please resize to at least " + std::to_string(min_width) + "x" + std::to_string(min_height)),
-                text(std::format("Current window size: {:d}x{:d}", screen.dimx(), screen.dimy()))
-            }) | center | border | color(Color::Red);
-        });
-
-        screen.Loop(final_ui);
+        screen.Loop(master_container);
     }
 }
