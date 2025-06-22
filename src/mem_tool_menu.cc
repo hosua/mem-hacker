@@ -80,7 +80,6 @@ namespace MemToolMenu {
         Component results_titled = Renderer(results_container, [&] {
             return window(text(" Results "), results_container->Render()) 
                 | size(HEIGHT, GREATER_THAN, 3)
-                | xflex
                 | yflex;
         });
 
@@ -171,7 +170,7 @@ namespace MemToolMenu {
         /* ======= END SETTINGS ========== */
 
         Component master_container = Container::Horizontal({
-            search_container,
+            search_container | xflex,
             settings_titled,
         });
 
