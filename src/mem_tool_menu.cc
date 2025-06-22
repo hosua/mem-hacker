@@ -115,9 +115,10 @@ namespace MemToolMenu {
             search_btn_container,
         });
 
+        search_container |= CatchEvent([&](Event event) { return false; });
+
         Component search_window = Renderer(search_container, [&] {
-            return window(text(" Search "), search_container->Render()) 
-                | xflex;
+            return window(text(" Search "), search_container->Render());
         }) | CatchEvent([&](Event event){
             return search_container->OnEvent(event);
         });
@@ -151,17 +152,29 @@ namespace MemToolMenu {
         });
 
         Component settings_window = Renderer(settings_container, [&] {
-            return window(text(" Settings "), settings_container->Render()) | xflex;
+            return window(text(" Settings "), settings_container->Render());
         });
 
         /* ======= END SETTINGS ========== */
 
+        const int min_width = 80, min_height = 15;
+
         Component master_container = Container::Horizontal({
-            search_window,
-            // search_container,
-            settings_window,
+            search_window | xflex,
+            settings_window | xflex,
         });
 
-        screen.Loop(master_container);
+        Component final_ui = Renderer([&] {
+            if (screen.dimx() >= min_width && screen.dimy() >= min_height) {
+                return master_container->Render();
+            }
+            return vbox({
+                text("Warning: window is too small!"),
+                text("Please resize to at least " + std::to_string(min_width) + "x" + std::to_string(min_height)),
+                text(std::format("Current window size: {:d}x{:d}", screen.dimx(), screen.dimy()))
+            }) | center | border | color(Color::Red);
+        });
+
+        screen.Loop(final_ui);
     }
 }
