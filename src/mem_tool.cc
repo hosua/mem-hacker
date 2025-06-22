@@ -13,7 +13,7 @@
 
 static const size_t WORD_SIZE = sizeof(long);
 
-std::vector<std::pair<DatatypeMode, std::string>> datatypeModeStringMap = {
+std::vector<std::pair<DatatypeMode, std::string>> datatype_mode_string_map = {
     {DTM_U8,     "uint8_t" },
     {DTM_U16,    "uint16_t"},
     {DTM_U32,    "uint32_t"},
@@ -626,7 +626,7 @@ void MemoryTool::clear_results() {
 }
 
 void MemoryTool::set_datatype_mode(DatatypeMode mode) {
-    std::cout << std::format("set datatype mode to: {:s}\n", datatypeModeStringMap[mode].second);
+    std::cout << std::format("set datatype mode to: {:s}\n", datatype_mode_string_map[mode].second);
     _datatype_mode = mode;
 }
 

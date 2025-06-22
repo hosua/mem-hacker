@@ -9,7 +9,7 @@ void display_menu(DatatypeMode datatype_mode) {
               << "2. Write to memory (by list)\n"
               << "3. Write to memory (by address)\n"
               << std::format("4. Set datatype mode (currently set to {:s})\n", 
-                             datatypeModeStringMap[datatype_mode].second)
+                             datatype_mode_string_map[datatype_mode].second)
               << "5. List Results\n"
               << "6. Clear Results\n"
               << "\nEnter your choice: ";
@@ -34,7 +34,7 @@ int main(int argc, const char** argv) {
         } 
 
         DatatypeMode datatype_mode = mem_tool.get_datatype_mode();
-        std::string datatype_mode_str = datatypeModeStringMap[datatype_mode].second;
+        std::string datatype_mode_str = datatype_mode_string_map[datatype_mode].second;
         display_menu(datatype_mode);
         std::cin >> choice;
 
@@ -156,16 +156,16 @@ int main(int argc, const char** argv) {
                 { 
                     uint32_t choice_opt = -1;
                     int i = 0;
-                    for (const auto& [mode, str] : datatypeModeStringMap)
+                    for (const auto& [mode, str] : datatype_mode_string_map)
                         std::cout <<  std::format("{:d}. {:s}\n", ++i, str);
-                    while (choice_opt <= 0 || choice_opt > datatypeModeStringMap.size()) {
+                    while (choice_opt <= 0 || choice_opt > datatype_mode_string_map.size()) {
                         std::cout << std::endl << "Enter the number to select the datatype you wish you read/write: ";
                         std::cin >> choice_opt; 
-                        if (choice_opt <= 0 || choice_opt > datatypeModeStringMap.size()) {
+                        if (choice_opt <= 0 || choice_opt > datatype_mode_string_map.size()) {
                             std::cout << "Invalid option selected...\n";
                         }
                     }
-                    DatatypeMode mode = datatypeModeStringMap[choice_opt-1].first;
+                    DatatypeMode mode = datatype_mode_string_map[choice_opt-1].first;
                     mem_tool.set_datatype_mode(mode);
                     break;
                 }

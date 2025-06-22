@@ -27,8 +27,12 @@ FetchContent_MakeAvailable(ftxui)
 # ------------------------------------------------------------------------------
 
 
-# add_executable(mem-hacker main.cc mem_tool.cc mem_tool.hh)
-add_executable(mem-hacker src/main.cc src/mem_tool.cc src/mem_tool.hh)
+file(GLOB SRC_FILES 
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cc"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hh"
+)
+
+add_executable(mem-hacker ${SRC_FILES})
 target_include_directories(mem-hacker PRIVATE src)
 
 target_link_libraries(mem-hacker

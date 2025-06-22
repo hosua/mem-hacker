@@ -21,7 +21,7 @@ typedef enum {
     DTM_DOUBLE,
 } DatatypeMode;
 
-extern std::vector<std::pair<DatatypeMode, std::string>> datatypeModeStringMap;
+extern std::vector<std::pair<DatatypeMode, std::string>> datatype_mode_string_map;
 
 class MemoryTool {
 public:
