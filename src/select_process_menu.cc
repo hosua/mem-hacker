@@ -62,7 +62,7 @@ namespace SelectProcessMenu {
         auto menu = Menu(&filtered_proc_list, &selected);
 
         menu |= CatchEvent([&](Event event) {
-            if ( (Event::Character('\n') == event) ) {
+            if (Event::Character('\n') == event) {
                 if (filtered_proc_list.empty()) return false;
                 result = filtered_proc_list[selected];
                 std::stringstream ss(result);
@@ -73,15 +73,12 @@ namespace SelectProcessMenu {
             return false;
         });
 
-        Component scroller = Renderer(menu, [&] {
-            return menu->Render() | vscroll_indicator | frame | border;
-        });
-
         Component filter_input = Input({
             .content = &filter_str,
             .placeholder = "search...",
             .transform = [](InputState state) {
-                return state.element |= bgcolor(Color::GrayDark);
+                return state.element |= bgcolor(Color());
+                // return state.element |= bgcolor(Color::GrayDark);
             },
             .multiline = false,
             .on_change = [&] {
@@ -101,8 +98,8 @@ namespace SelectProcessMenu {
         });
 
         Component process_menu = Container::Vertical({
-            filter_input, 
-            scroller,
+            filter_input | border | size(HEIGHT, EQUAL, 3), 
+            menu | vscroll_indicator | frame | border | flex,
         });
 
         screen.Loop(process_menu);
