@@ -1,14 +1,14 @@
-cmake_minimum_required(VERSION 3.22)
-project(mem-hacker
-    LANGUAGES CXX
-    VERSION 1.0.0
+cmake_minimum_required (VERSION 3.22)
+
+project(proc-test
+  LANGUAGES CXX
+  VERSION 1.0.0
 )
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_BUILD_TYPE Debug)
 
 # --- Fetch FTXUI --------------------------------------------------------------
 include(FetchContent)
@@ -26,12 +26,10 @@ FetchContent_Declare(ftxui
 FetchContent_MakeAvailable(ftxui)
 # ------------------------------------------------------------------------------
 
+add_executable(ftxui-starter src/main.cpp)
+target_include_directories(ftxui-starter PRIVATE src)
 
-# add_executable(mem-hacker main.cc mem_tool.cc mem_tool.hh)
-add_executable(mem-hacker src/main.cc src/mem_tool.cc src/mem_tool.hh)
-target_include_directories(mem-hacker PRIVATE src)
-
-target_link_libraries(mem-hacker
+target_link_libraries(ftxui-starter
   PRIVATE ftxui::screen
   PRIVATE ftxui::dom
   PRIVATE ftxui::component  # Not needed for this example.
@@ -46,7 +44,3 @@ if (EMSCRIPTEN)
     configure_file("src/${file}" ${file})
   endforeach(file)
 endif()
-
-
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_CXX_STANDARD 20)
