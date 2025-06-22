@@ -615,6 +615,17 @@ std::vector<mem_addr> MemoryTool::list_search_results() const {
     return res;
 }
 
+std::vector<std::string> MemoryTool::get_search_list() const {
+    std::vector<std::string> res;
+    if (_search_results.size() == 0) {
+        return {};
+    }
+    for (const mem_addr addr : _search_results) {
+        res.emplace_back(std::format("0x{:x}\n", addr));
+    }
+    return res;
+}
+
 bool MemoryTool::detach_process() const {
     int res = ptrace(PTRACE_DETACH, _pid, nullptr, (void*)SIGCONT);
     return (res == 0);

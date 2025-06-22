@@ -10,34 +10,81 @@
 #include <iostream>
 
 static int selected_result;
-static std::vector<std::string> results = {
-};
+static std::vector<std::string> results_list = {};
 static DatatypeMode datatype_mode = DTM_U32;
+
+static MemoryTool mem_tool;
+
+static uint64_t val_int;
+static float val_float;
+static double val_double;
+
+static void run_search(const std::string& search_str) {
+    if (datatype_mode == DTM_FLOAT) {
+        val_float = std::stof(search_str);
+        mem_tool.search(val_float);
+    } 
+    // else if (datatype_mode == DTM_DOUBLE) {
+    //     // double isn't implemented yet!
+    //     val_double = std::stod(search_str);
+    //     double val;
+    //     mem_tool.search(val);
+    // } 
+    else {
+        val_int = std::stod(search_str);
+        switch (datatype_mode) {
+            case DTM_U8:
+                mem_tool.search((uint8_t)val_int);
+                break;
+            case DTM_U16:
+                mem_tool.search((uint16_t)val_int);
+                break;
+            case DTM_U32:
+                mem_tool.search((uint32_t)val_int);
+                break;
+            case DTM_U64:
+                mem_tool.search((uint64_t)val_int);
+                break;
+            default: // default to uint32_t as failsafe
+                mem_tool.search((uint32_t)val_int);
+                break;
+        }
+    }
+}
 
 namespace MemToolMenu {
     using namespace ftxui;
     
     void run(int pid) {
+        int dump_res;
+        if ( (dump_res = mem_tool.dump(pid) == -1) ){
+            perror("MemoryTool.dump");
+            return;
+        }
         ScreenInteractive screen = ScreenInteractive::Fullscreen();
         
         /* ======= BEGIN SEARCH COMPONENTS ======= */
 
-        auto results_menu = Menu(&results, &selected_result);
-        Component results_list = Container::Vertical({
+        auto results_menu = 
+            Menu(&results_list, &selected_result);
+
+        Component results_container = Container::Vertical({
             Renderer(results_menu, [&] {
-                return results_menu->Render() | vscroll_indicator | frame | border;
+                return results_menu->Render() 
+                    | vscroll_indicator 
+                    | frame 
+                    | border;
             })
         });
 
-        Component search_button = Button({ 
-            .label = "Search",
-            .on_click = [&]() {
-                // search for memory values 
-            },
+        Component results_titled = Renderer(results_container, [&] {
+            return window(text(" Results "), results_container->Render()) 
+                | size(HEIGHT, GREATER_THAN, 3)
+                | xflex
+                | yflex;
         });
 
         std::string search_str;
-
         Component search_input = Input({
             .content = &search_str,
             .placeholder = "enter a value to search...",
@@ -46,9 +93,10 @@ namespace MemToolMenu {
             },
             .multiline = false,
             .on_enter = [&] {
-                
-                // search for memory values 
+                if (search_str.empty()) return;
+                run_search(search_str);
                 search_str.clear();
+                results_list = mem_tool.get_search_list();
             },
         });
         
@@ -61,21 +109,39 @@ namespace MemToolMenu {
             return !std::isdigit(ch);
         });
 
-        Component search_bar = Container::Horizontal({
-            search_input, search_button
+        Component bordered_search_input = Renderer(search_input, [&] {
+            return search_input->Render() 
+                | border;
+        });
+
+        Component search_btn = Button("Search", [&] {
+            if (search_str.empty()) return;
+            run_search(search_str);
+            search_str.clear();
+            results_list = mem_tool.get_search_list();
+        });
+
+        Component clear_btn = Button("Clear", [&] {
+            mem_tool.clear_results();
+            results_list = mem_tool.get_search_list();
+        });
+
+        Component search_btn_container = Container::Horizontal({
+            search_btn, clear_btn,
         });
 
         Component search_container = Container::Vertical({
-            results_list,
-            search_bar,
-        }) | size(WIDTH, GREATER_THAN, 100);
+            bordered_search_input,
+            results_titled,
+            search_btn_container,
+        });
         
         search_container |= border;
         /* ======= END SEARCH COMPONENTS ======== */
 
         /* ======= BEGIN SETTINGS ========== */
         
-        int selected_datatype_index = 0, prev_datatype_index = 0;
+        int selected_datatype_index = 2, prev_datatype_index = selected_datatype_index;
         std::vector<std::string> dropdown_opts;
         for (const auto& [datatype_mode, str] : datatype_mode_string_map)
             dropdown_opts.emplace_back(str);

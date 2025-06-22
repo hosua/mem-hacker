@@ -49,7 +49,8 @@ public:
     void set_datatype_mode(DatatypeMode mode);
     DatatypeMode get_datatype_mode() const;
     
-    std::vector<mem_addr> list_search_results() const;
+    std::vector<mem_addr> list_search_results() const; // deprecated
+    std::vector<std::string> get_search_list() const; // for FTXUI
 private:
     uint8_t read_uint8_at(mem_addr addr) const;
     uint16_t read_uint16_at(mem_addr addr) const;
