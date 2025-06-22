@@ -68,21 +68,6 @@ namespace MemToolMenu {
         auto results_menu = 
             Menu(&results_list, &selected_result);
 
-        Component results_container = Container::Vertical({
-            Renderer(results_menu, [&] {
-                return results_menu->Render() 
-                    | vscroll_indicator 
-                    | frame 
-                    | border;
-            })
-        });
-
-        Component results_titled = Renderer(results_container, [&] {
-            return window(text(" Results "), results_container->Render()) 
-                | size(HEIGHT, GREATER_THAN, 3)
-                | yflex;
-        });
-
         std::string search_str;
         Component search_input = Input({
             .content = &search_str,
@@ -108,11 +93,6 @@ namespace MemToolMenu {
             return !std::isdigit(ch);
         });
 
-        Component bordered_search_input = Renderer(search_input, [&] {
-            return search_input->Render() 
-                | border;
-        });
-
         Component search_btn = Button("Search", [&] {
             if (search_str.empty()) return;
             run_search(search_str);
@@ -130,9 +110,16 @@ namespace MemToolMenu {
         });
 
         Component search_container = Container::Vertical({
-            bordered_search_input,
-            results_titled,
+            search_input | border,
+            results_menu | vscroll_indicator | frame | border | size(HEIGHT, GREATER_THAN, 3) | yflex,
             search_btn_container,
+        });
+
+        Component search_window = Renderer(search_container, [&] {
+            return window(text(" Search "), search_container->Render()) 
+                | xflex;
+        }) | CatchEvent([&](Event event){
+            return search_container->OnEvent(event);
         });
         
         search_container |= border;
@@ -163,15 +150,16 @@ namespace MemToolMenu {
             datatype_dropdown_labeled,
         });
 
-        Component settings_titled = Renderer(settings_container, [&] {
+        Component settings_window = Renderer(settings_container, [&] {
             return window(text(" Settings "), settings_container->Render()) | xflex;
         });
 
         /* ======= END SETTINGS ========== */
 
         Component master_container = Container::Horizontal({
-            search_container | xflex,
-            settings_titled,
+            search_window,
+            // search_container,
+            settings_window,
         });
 
         screen.Loop(master_container);
