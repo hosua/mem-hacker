@@ -20,11 +20,11 @@ Logger::~Logger() {
 }
 
 void Logger::log(const std::string& message) const {
-    output_file << ts() << message;
+    output_file << message;
 }
 
 void Logger::operator << (const std::string& message) const {
-    output_file << ts() << message;
+    output_file << message;
 }
 
 std::string Logger::ts() const {

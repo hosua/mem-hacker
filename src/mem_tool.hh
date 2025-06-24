@@ -45,7 +45,7 @@ public:
     bool search(uint16_t val); 
     bool search(uint32_t val); 
     bool search(uint64_t val); 
-    bool search(float val);
+    bool search(float val); // TODO: Approximate float search
     bool search(double val); // TODO
 
     void print_regions() const;
