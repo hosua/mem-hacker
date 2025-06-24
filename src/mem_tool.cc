@@ -50,6 +50,7 @@ int MemoryTool::dump(int pid) {
     int fd = open(mem_file.c_str(), O_RDONLY);
     if (fd == -1) {
         perror("open mem_file");
+        logger << strerror(errno);
         return -1;
     }
     
@@ -72,6 +73,7 @@ int MemoryTool::dump(int pid) {
         }
     } else {
         perror("ifstream");
+        logger << strerror(errno);
         return -1;
     }
     
@@ -96,6 +98,7 @@ uint8_t MemoryTool::read_uint8_at(mem_addr addr) const {
     uint64_t data = ptrace(PTRACE_PEEKDATA, _pid, (void*)aligned_addr, nullptr);
     if (data == -1) {
         perror("ptrace PEEKDATA");
+        logger << strerror(errno);
         return -1;
     }
     const size_t byte_offset = addr % WORD_SIZE;
@@ -111,6 +114,7 @@ uint16_t MemoryTool::read_uint16_at(mem_addr addr) const {
     uint64_t lo = ptrace(PTRACE_PEEKDATA, _pid, (void*)aligned_addr, nullptr);
     if (lo == -1ULL && errno != 0) {
         perror("ptrace PEEKDATA");
+        logger << strerror(errno);
         return 0;
     }
 
@@ -123,6 +127,7 @@ uint16_t MemoryTool::read_uint16_at(mem_addr addr) const {
     uint64_t hi = ptrace(PTRACE_PEEKDATA, _pid, (void*)(aligned_addr + WORD_SIZE), nullptr);
     if (hi == -1ULL && errno != 0) {
         perror("ptrace PEEKDATA (next word)");
+        logger << strerror(errno);
         return 0;
     }
 
@@ -138,6 +143,7 @@ uint32_t MemoryTool::read_uint32_at(mem_addr addr) const {
     uint64_t lo = ptrace(PTRACE_PEEKDATA, _pid, (void*)aligned_addr, nullptr);
     if (lo == -1ULL && errno != 0) {
         perror("ptrace PEEKDATA");
+        logger << strerror(errno);
         return 0;
     }
 
@@ -149,6 +155,7 @@ uint32_t MemoryTool::read_uint32_at(mem_addr addr) const {
     uint64_t hi = ptrace(PTRACE_PEEKDATA, _pid, (void*)(aligned_addr + WORD_SIZE), nullptr);
     if (hi == -1ULL && errno != 0) {
         perror("ptrace PEEKDATA (next word)");
+        logger << strerror(errno);
         return 0;
     }
 
@@ -172,6 +179,7 @@ uint64_t MemoryTool::read_uint64_at(mem_addr addr) const {
     uint64_t lo = ptrace(PTRACE_PEEKDATA, _pid, (void*)aligned_addr, nullptr);
     if (lo == -1ULL && errno != 0) {
         perror("ptrace PEEKDATA");
+        logger << strerror(errno);
         return 0;
     }
 
@@ -183,6 +191,7 @@ uint64_t MemoryTool::read_uint64_at(mem_addr addr) const {
     uint64_t hi = ptrace(PTRACE_PEEKDATA, _pid, (void*)(aligned_addr + WORD_SIZE), nullptr);
     if (hi == -1ULL && errno != 0) {
         perror("ptrace PEEKDATA (next word)");
+        logger << strerror(errno);
         return 0;
     }
 
@@ -378,6 +387,7 @@ void MemoryTool::write(uint8_t val, mem_addr addr) const {
     long word = ptrace(PTRACE_PEEKDATA, _pid, (void*)aligned_addr, nullptr);
     if (word == -1 && errno != 0) {
         perror("ptrace PEEKDATA");
+        logger << strerror(errno);
         exit(EXIT_FAILURE);
     }
     
@@ -419,6 +429,7 @@ void MemoryTool::write(uint8_t val, mem_addr addr) const {
     int res = ptrace(PTRACE_POKEDATA, _pid, (void*)aligned_addr, (void*)word);
     if (res == -1) {
         perror("ptrace POKEDATA");
+        logger << strerror(errno);
         exit(EXIT_FAILURE);
     }
     detach_process();
@@ -433,6 +444,7 @@ void MemoryTool::write(uint16_t val, mem_addr addr) const {
     long word = ptrace(PTRACE_PEEKDATA, _pid, (void*)aligned_addr, nullptr);
     if (word == -1 && errno != 0) {
         perror("ptrace PEEKDATA");
+        logger << strerror(errno);
         exit(EXIT_FAILURE);
     }
     
@@ -467,6 +479,7 @@ void MemoryTool::write(uint16_t val, mem_addr addr) const {
     int res = ptrace(PTRACE_POKEDATA, _pid, (void*)aligned_addr, (void*)word);
     if (res == -1) {
         perror("ptrace POKEDATA");
+        logger << strerror(errno);
         exit(EXIT_FAILURE);
     }
     detach_process();
@@ -482,6 +495,7 @@ void MemoryTool::write(uint32_t val, mem_addr addr) const {
     if (word == -1 && errno != 0) {
         perror("ptrace PEEKDATA");
         logger << std::format("0x{:x}: {:d}\n", addr, val);
+        logger << strerror(errno);
         exit(EXIT_FAILURE);
     }
     
@@ -519,6 +533,7 @@ void MemoryTool::write(uint32_t val, mem_addr addr) const {
     int res = ptrace(PTRACE_POKEDATA, _pid, (void*)aligned_addr, (void*)word);
     if (res == -1) {
         perror("ptrace POKEDATA");
+        logger << strerror(errno);
         exit(EXIT_FAILURE);
     }
     detach_process();
@@ -531,6 +546,7 @@ void MemoryTool::write(uint64_t val, mem_addr addr) const {
     long word = ptrace(PTRACE_PEEKDATA, _pid, (void*)aligned_addr, nullptr);
     if (word == -1 && errno != 0) {
         perror("ptrace PEEKDATA");
+        logger << strerror(errno);
         exit(EXIT_FAILURE);
     }
     
@@ -563,6 +579,7 @@ void MemoryTool::write(uint64_t val, mem_addr addr) const {
     int res = ptrace(PTRACE_POKEDATA, _pid, (void*)aligned_addr, (void*)word);
     if (res == -1) {
         perror("ptrace POKEDATA");
+        logger << strerror(errno);
         exit(EXIT_FAILURE);
     }
     detach_process();
@@ -577,6 +594,7 @@ void MemoryTool::write(float val, mem_addr addr) const {
     long word = ptrace(PTRACE_PEEKDATA, _pid, (void*)aligned_addr, nullptr);
     if (word == -1 && errno != 0) {
         perror("ptrace PEEKDATA");
+        logger << strerror(errno);
         exit(EXIT_FAILURE);
     }
 
@@ -588,6 +606,7 @@ void MemoryTool::write(float val, mem_addr addr) const {
     int res = ptrace(PTRACE_POKEDATA, _pid, (void*)aligned_addr, (void*)word);
     if (res == -1) {
         perror("ptrace POKEDATA");
+        logger << strerror(errno);
         exit(EXIT_FAILURE);
     }
     detach_process();
@@ -596,6 +615,7 @@ void MemoryTool::write(float val, mem_addr addr) const {
 bool MemoryTool::attach_process() const {
     if (ptrace(PTRACE_ATTACH, _pid, NULL, NULL) == -1) {
         perror("ptrace ATTACH");
+        logger << strerror(errno);
         return false;
     }
     waitpid(_pid, NULL, 0);
