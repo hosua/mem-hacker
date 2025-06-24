@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 
 #include "select_process_menu.hh"
 #include "mem_tool_menu.hh"

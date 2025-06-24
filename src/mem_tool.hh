@@ -8,11 +8,13 @@
 
 typedef uint64_t mem_addr;
 
+// unsigned is redundant, we can cast all int types and search/write
+// accordingly since the bit structure is all that matters.
 typedef enum {
-    DTM_U8,
-    DTM_U16,
-    DTM_U32,
-    DTM_U64,
+    // DTM_U8,
+    // DTM_U16,
+    // DTM_U32,
+    // DTM_U64,
     DTM_I8,
     DTM_I16,
     DTM_I32,
@@ -64,7 +66,7 @@ private:
     bool attach_process() const;
     bool detach_process() const;
     
-    DatatypeMode _datatype_mode = DTM_U32;
+    DatatypeMode _datatype_mode = DTM_I32;
     std::map<std::string, std::vector<uint8_t>> _mem; // key = addr_start-addr_end
     std::set<mem_addr> _search_results;
     int _pid;

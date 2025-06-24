@@ -12,11 +12,11 @@
 
 static int selected_result;
 static std::vector<std::string> results_list = {};
-static DatatypeMode datatype_mode = DTM_U32;
+static DatatypeMode datatype_mode = DTM_I32;
 
 static MemoryTool mem_tool;
 
-static uint64_t val_int;
+static uint64_t val_int; // all int types can be casted from uint64_t
 static float val_float;
 static double val_double;
 
@@ -39,16 +39,16 @@ static void run_search(const std::string& search_str, int pid) {
     else {
         val_int = std::stod(search_str);
         switch (datatype_mode) {
-            case DTM_U8:
+            case DTM_I8:
                 mem_tool.search((uint8_t)val_int);
                 break;
-            case DTM_U16:
+            case DTM_I16:
                 mem_tool.search((uint16_t)val_int);
                 break;
-            case DTM_U32:
+            case DTM_I32:
                 mem_tool.search((uint32_t)val_int);
                 break;
-            case DTM_U64:
+            case DTM_I64:
                 mem_tool.search((uint64_t)val_int);
                 break;
             default: // default to uint32_t as failsafe
@@ -81,7 +81,6 @@ namespace MemToolMenu {
                 addr_str.erase(0, 2);
                 addr_to_write_to = std::stoull(addr_str);
                 writing_mode = true;
-                // TODO: need to put a write to address UI here somehow
                 return true;
             }
             return false;
@@ -109,8 +108,9 @@ namespace MemToolMenu {
             char ch = event.character()[0];
             // only allow user to type . if one does not already exist, and if  double or float are selected
             if ((datatype_mode == DTM_FLOAT || datatype_mode == DTM_DOUBLE) && !search_str.contains("."))
-                return !std::isdigit(ch) && ch != '.' ;
+                return !std::isdigit(ch) && ch != '.';
             return !std::isdigit(ch);
+
         });
 
         Component search_btn = Button("Search", [&] {
@@ -130,18 +130,17 @@ namespace MemToolMenu {
         for (const auto& [datatype_mode, str] : datatype_mode_string_map)
             dropdown_opts.emplace_back(str);
 
-        Component datatype_dropdown = Dropdown(dropdown_opts, &selected_datatype_index);
+        Component datatype_dropdown = Dropdown(dropdown_opts, &selected_datatype_index)
+            | CatchEvent([&](Event event){
+                datatype_mode = datatype_mode_string_map[selected_datatype_index].first;
+                search_str.clear();
+                return false;
+            });
 
         Component bottom_section_container = Container::Horizontal({
             Container::Horizontal({ search_btn, clear_btn }) | xflex, 
             datatype_dropdown | align_right | xflex
         });
-
-        // Component search_window = Renderer(search_container, [&] {
-        //     return window(text(" Search "), search_container->Render());
-        // }) | CatchEvent([&](Event event){
-        //     return search_container->OnEvent(event);
-        // });
 
         std::string write_value_str;
 
@@ -158,9 +157,32 @@ namespace MemToolMenu {
                 ss >> addr;
                 
                 if (!write_value_str.empty()) {
-                    // TODO: handle types when writing values, assuming uint32_t for now
-                    uint32_t write_value = std::stoi(write_value_str); 
-                    mem_tool.write(write_value, addr);
+                    switch (datatype_mode) {
+                        case DTM_I8:
+                            val_int = std::stoi(write_value_str); 
+                            mem_tool.write((uint8_t)val_int, addr);
+                        break;
+                        case DTM_I16:
+                            val_int = std::stoi(write_value_str); 
+                            mem_tool.write((uint16_t)val_int, addr);
+                        break;
+                        case DTM_I32:
+                            val_int = std::stoi(write_value_str); 
+                            mem_tool.write((uint32_t)val_int, addr);
+                        break;
+                        case DTM_I64:
+                            val_int = std::stoull(write_value_str); 
+                            mem_tool.write((uint64_t)val_int, addr);
+                        break;
+                        case DTM_FLOAT:
+                            val_float = std::stof(write_value_str); 
+                            mem_tool.write(val_float, addr);
+                        break;
+                        case DTM_DOUBLE: // TODO: Not yet implemented
+                        break;
+                    }
+                    // uint32_t write_value = std::stoull(write_value_str); 
+                    // mem_tool.write(write_value, addr);
                     writing_mode = false;
                     write_value_str.clear();
                 }
@@ -169,7 +191,16 @@ namespace MemToolMenu {
 
         write_value_input |= CatchEvent([&](Event event) {
             if (event == Event::Escape) writing_mode = false;
-            return false;
+            if (!event.is_character()) return false;
+            char ch = event.character()[0];
+            // allow - for first char
+            if (ch == '-' && write_value_str.empty()) return false;
+            // allow single dot
+            if ((datatype_mode == DTM_FLOAT || datatype_mode == DTM_DOUBLE) &&
+                ch == '.' && write_value_str.find('.') == std::string::npos) {
+                return false; 
+            }
+            return !std::isdigit(ch);
         });
 
         Component search_container = Container::Vertical({
@@ -193,7 +224,8 @@ namespace MemToolMenu {
         Component master_container = Container::Stacked({
             search_window,
         });
-
+        
+        // When in writing mode, force keyboard events to the write input 
         master_container |= CatchEvent([&](Event event) {
             if (writing_mode) return write_value_input->OnEvent(event);
             return search_window->OnEvent(event);

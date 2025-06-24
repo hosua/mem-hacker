@@ -14,10 +14,10 @@
 static const size_t WORD_SIZE = sizeof(long);
 
 std::vector<std::pair<DatatypeMode, std::string>> datatype_mode_string_map = {
-    {DTM_U8,     "uint8_t" },
-    {DTM_U16,    "uint16_t"},
-    {DTM_U32,    "uint32_t"},
-    {DTM_U64,    "uint64_t"},
+    // {DTM_U8,     "uint8_t" },
+    // {DTM_U16,    "uint16_t"},
+    // {DTM_U32,    "uint32_t"},
+    // {DTM_U64,    "uint64_t"},
     {DTM_I8,     "int8_t"  },
     {DTM_I16,    "int16_t" },
     {DTM_I32,    "int32_t" },
