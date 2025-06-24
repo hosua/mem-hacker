@@ -163,7 +163,7 @@ namespace MemToolMenu {
 
         Component write_value_input = Input({
             .content = &write_value_str,
-            .placeholder = std::format("enter a value to write, or press esc to cancel", addr_to_write_to),
+            .placeholder = std::format("enter a value to write or press esc to cancel"),
             .transform = [](InputState state){ return state.element |= bgcolor(Color()); },
             .multiline = false,
             .on_enter = [&] {
@@ -198,8 +198,6 @@ namespace MemToolMenu {
                         case DTM_DOUBLE: // TODO: Not yet implemented
                         break;
                     }
-                    // uint32_t write_value = std::stoull(write_value_str); 
-                    // mem_tool.write(write_value, addr);
                     writing_mode = false;
                     write_value_str.clear();
                 }
@@ -220,20 +218,13 @@ namespace MemToolMenu {
             return !std::isdigit(ch);
         });
 
-        Component search_section = Container::Horizontal({
+        Component search_horizontal = Container::Horizontal({
             loading_spinner | vcenter,
             search_input | border | size(WIDTH, GREATER_THAN, 40),
         });
-        
-        Component padded_search_section = Renderer([&] {
-            return hbox({
-                search_section->Render(),
-                text(" "),
-            });
-        }) | CatchEvent([&](Event event) { return search_section->OnEvent(event); });
 
         Component search_container = Container::Vertical({
-            padded_search_section,
+            search_horizontal,
             results_menu | vscroll_indicator | frame | border | size(HEIGHT, GREATER_THAN, 3) | yflex,
             Maybe(write_value_input, &writing_mode),
             bottom_section_container,
@@ -250,7 +241,7 @@ namespace MemToolMenu {
             .resize_down = false,
         });
 
-        Component master_container = Container::Stacked({
+        Component master_container = Container::Vertical({
             search_window,
         });
         
