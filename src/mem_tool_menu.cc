@@ -14,24 +14,36 @@ static int selected_result;
 static std::vector<std::string> results_list = {};
 static DatatypeMode datatype_mode = DTM_I32;
 
+static bool is_searching = false;
+static std::atomic<size_t> spinner_frame = 0;
+// static int spinner_charset = 7;
+static int spinner_charset = 8;
+std::atomic<bool> spinner_running = true;
+
 static MemoryTool mem_tool;
 
 static uint64_t val_int; // all int types can be casted from uint64_t
 static float val_float;
 static double val_double;
 
+using namespace ftxui;
+
+ScreenInteractive screen = ScreenInteractive::Fullscreen();
+
 static void run_search(const std::string& search_str, int pid) {
+    is_searching = true;
     int dump_res;
     if ( (dump_res = mem_tool.dump(pid) == -1) ){
         perror("MemoryTool.dump");
         return;
     }
+
     if (datatype_mode == DTM_FLOAT) {
         val_float = std::stof(search_str);
         mem_tool.search(val_float);
     } 
     // else if (datatype_mode == DTM_DOUBLE) {
-    //     // double isn't implemented yet!
+    //     // TODO double isn't implemented yet!
     //     val_double = std::stod(search_str);
     //     double val;
     //     mem_tool.search(val);
@@ -39,35 +51,25 @@ static void run_search(const std::string& search_str, int pid) {
     else {
         val_int = std::stod(search_str);
         switch (datatype_mode) {
-            case DTM_I8:
-                mem_tool.search((uint8_t)val_int);
-                break;
-            case DTM_I16:
-                mem_tool.search((uint16_t)val_int);
-                break;
-            case DTM_I32:
-                mem_tool.search((uint32_t)val_int);
-                break;
-            case DTM_I64:
-                mem_tool.search((uint64_t)val_int);
-                break;
-            default: // default to uint32_t as failsafe
-                mem_tool.search((uint32_t)val_int);
-                break;
+            case DTM_I8:  mem_tool.search((uint8_t)val_int); break;
+            case DTM_I16: mem_tool.search((uint16_t)val_int); break;
+            case DTM_I32: mem_tool.search((uint32_t)val_int); break;
+            case DTM_I64: mem_tool.search((uint64_t)val_int); break;
+            case DTM_DOUBLE: case DTM_FLOAT: break;
         }
     }
+    results_list = mem_tool.get_search_list();
+    is_searching = false;
+    screen.PostEvent(ftxui::Event::Custom); // force redraw
 }
 
 namespace MemToolMenu {
-    using namespace ftxui;
-    
     void run(int pid) {
         int dump_res;
         if ( (dump_res = mem_tool.dump(pid) == -1) ){
             perror("MemoryTool.dump");
             return;
         }
-        ScreenInteractive screen = ScreenInteractive::Fullscreen();
 
         Component results_menu = 
             Menu(&results_list, &selected_result);
@@ -86,6 +88,21 @@ namespace MemToolMenu {
             return false;
         });
 
+        Component loading_spinner = Renderer([&] {
+            if (!is_searching) return text(" ");
+            return spinner(spinner_charset, spinner_frame);
+        });
+
+        std::thread spinner_thread([&] {
+            while (spinner_running) {
+                if (is_searching) {
+                    spinner_frame++;
+                    screen.PostEvent(Event::Custom); // Triggers UI refresh
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+        });
+
         std::string search_str;
         Component search_input = Input({
             .content = &search_str,
@@ -96,10 +113,11 @@ namespace MemToolMenu {
             },
             .multiline = false,
             .on_enter = [&] {
-                if (search_str.empty()) return;
-                run_search(search_str, pid);
+                if (search_str.empty() || is_searching) return;
+                std::thread([=] {
+                    run_search(search_str, pid);
+                }).detach();
                 search_str.clear();
-                results_list = mem_tool.get_search_list();
             },
         });
         
@@ -117,12 +135,11 @@ namespace MemToolMenu {
             if (search_str.empty()) return;
             run_search(search_str, pid);
             search_str.clear();
-            results_list = mem_tool.get_search_list();
         });
 
         Component clear_btn = Button("Clear", [&] {
             mem_tool.clear_results();
-            results_list = mem_tool.get_search_list();
+            results_list.clear();
         });
         
         int selected_datatype_index = 2, prev_datatype_index = selected_datatype_index;
@@ -203,8 +220,20 @@ namespace MemToolMenu {
             return !std::isdigit(ch);
         });
 
+        Component search_section = Container::Horizontal({
+            loading_spinner | vcenter,
+            search_input | border | size(WIDTH, GREATER_THAN, 40),
+        });
+        
+        Component padded_search_section = Renderer([&] {
+            return hbox({
+                search_section->Render(),
+                text(" "),
+            });
+        }) | CatchEvent([&](Event event) { return search_section->OnEvent(event); });
+
         Component search_container = Container::Vertical({
-            search_input | border,
+            padded_search_section,
             results_menu | vscroll_indicator | frame | border | size(HEIGHT, GREATER_THAN, 3) | yflex,
             Maybe(write_value_input, &writing_mode),
             bottom_section_container,
@@ -212,7 +241,7 @@ namespace MemToolMenu {
 
         Component search_window = Window({ 
             .inner = search_container,
-            .title = "Search",
+            .title = " mem-hacker ",
             .width = 200,
             .height = 180,
             .resize_left = false,
@@ -232,5 +261,7 @@ namespace MemToolMenu {
         });
 
         screen.Loop(master_container);
+        spinner_running = false;
+        spinner_thread.join();
     }
 }
