@@ -254,7 +254,6 @@ bool MemoryTool::search(uint16_t val) {
     } else {
         std::erase_if(_search_results, [&](const mem_addr& addr) {
             uint16_t data = read_uint16_at(addr);
-            if (data == val) logger << std::format("0x{:x}: {:d}\n", addr, data);
             return data != val;
         });
         logger << std::format("{:d} results remain.\n", _search_results.size());
@@ -289,7 +288,6 @@ bool MemoryTool::search(uint32_t val) {
     } else {
         std::erase_if(_search_results, [&](const mem_addr& addr) {
             uint32_t data = read_uint32_at(addr);
-            if (data == val) logger << std::format("0x{:x}: {:d}\n", addr, data);
             return data != val;
         });
         logger << std::format("{:d} results remain.\n", _search_results.size());
@@ -327,7 +325,6 @@ bool MemoryTool::search(uint64_t val) {
     } else {
         std::erase_if(_search_results, [&](const mem_addr& addr) {
             uint64_t data = read_uint64_at(addr);
-            if (data == val) logger << std::format("0x{:x}: {:d}\n", addr, data);
             return data != val;
         });
         logger << std::format("{:d} results remain.\n", _search_results.size());
@@ -362,7 +359,6 @@ bool MemoryTool::search(float val) {
     } else {
         std::erase_if(_search_results, [&](const mem_addr& addr) {
             float data = std::bit_cast<float>(read_uint32_at(addr));
-            if (data == val) logger << std::format("0x{:X}: {:f}\n", addr, data);
             return data != val;
         });
         logger << std::format("{:d} results remain.\n", _search_results.size());
