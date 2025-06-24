@@ -481,6 +481,7 @@ void MemoryTool::write(uint32_t val, uint64_t addr) const {
     long word = ptrace(PTRACE_PEEKDATA, _pid, (void*)aligned_addr, nullptr);
     if (word == -1 && errno != 0) {
         perror("ptrace PEEKDATA");
+        std::cout << val << ", " << addr << "\n";
         exit(EXIT_FAILURE);
     }
     
