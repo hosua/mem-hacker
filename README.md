@@ -18,6 +18,8 @@ Uses FTXUI for the awesome TUI!
 
 https://github.com/user-attachments/assets/754c6563-abd2-4d33-9c0a-7213885ed7fa
 
+The demo demonstrates me searching for the score value in yetris and writing a new score.
+
 
 ### Known Issues
 
