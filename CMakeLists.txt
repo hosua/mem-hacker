@@ -38,7 +38,7 @@ target_include_directories(mem-hacker PRIVATE src)
 target_link_libraries(mem-hacker
   PRIVATE ftxui::screen
   PRIVATE ftxui::dom
-  PRIVATE ftxui::component  # Not needed for this example.
+  PRIVATE ftxui::component  
 )
 
 if (EMSCRIPTEN)

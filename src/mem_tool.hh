@@ -31,19 +31,22 @@ public:
     ~MemoryTool();
     
     int dump(int pid); // dumps memory from pid into _mem
-    void write(uint8_t val, uint64_t addr) const;
-    void write(uint16_t val, uint64_t addr) const;
-    void write(uint32_t val, uint64_t addr) const;
-    void write(uint64_t val, uint64_t addr) const;
-    void write(float val, uint64_t addr) const;   // TODO
-    void write(double val, uint64_t addr) const;  // TODO
     
-    // searches existing results if some are stored
+    void write(uint8_t val, mem_addr addr) const;
+    void write(uint16_t val, mem_addr addr) const;
+    void write(uint32_t val, mem_addr addr) const;
+    void write(uint64_t val, mem_addr addr) const;
+    void write(float val, mem_addr addr) const;   
+    void write(double val, mem_addr addr) const;  // TODO
+    
+    // searching memory with ptrace if no results exist in _mem. searches
+    // existing results in _mem otherwise. 
     bool search(uint8_t val); 
     bool search(uint16_t val); 
     bool search(uint32_t val); 
     bool search(uint64_t val); 
     bool search(float val);
+    bool search(double val); // TODO
 
     void print_regions() const;
     void clear_results();
@@ -51,23 +54,20 @@ public:
     void set_datatype_mode(DatatypeMode mode);
     DatatypeMode get_datatype_mode() const;
     
-    std::vector<mem_addr> list_search_results() const; // deprecated
-    std::vector<std::string> get_search_list() const; // for FTXUI
+    std::vector<mem_addr> list_search_results() const; // old ui 
+    std::vector<std::string> get_search_list() const; // FTXUI
+
 private:
     uint8_t read_uint8_at(mem_addr addr) const;
     uint16_t read_uint16_at(mem_addr addr) const;
     uint32_t read_uint32_at(mem_addr addr) const; 
-    uint64_t read_uint64_at(mem_addr addr) const; // TODO
-    int8_t read_int8_at(mem_addr addr) const;     // TODO
-    int16_t read_int16_at(mem_addr addr) const;   // TODO
-    int32_t read_int32_at(mem_addr addr) const;   // TODO
-    int64_t read_int64_at(mem_addr addr) const;   // TODO
+    uint64_t read_uint64_at(mem_addr addr) const; 
 
     bool attach_process() const;
     bool detach_process() const;
     
     DatatypeMode _datatype_mode = DTM_I32;
-    std::map<std::string, std::vector<uint8_t>> _mem; // key = addr_start-addr_end
+    std::map<std::string, std::vector<uint8_t>> _mem; // key = "addr_start-addr_end"
     std::set<mem_addr> _search_results;
     int _pid;
 };

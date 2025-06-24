@@ -11,6 +11,8 @@
 #include <fstream>
 #include <iostream>
 
+#include "logger.hh"
+
 static const size_t WORD_SIZE = sizeof(long);
 
 std::vector<std::pair<DatatypeMode, std::string>> datatype_mode_string_map = {
@@ -56,16 +58,16 @@ int MemoryTool::dump(int pid) {
     if (file.is_open()) {
         std::string line;
         while (std::getline(file, line)) {
-            if (line.find("rw-p") != std::string::npos &&     // get readable/writable private memory
+            if (line.find("rw-p") != std::string::npos &&     // get readable/writable memory only
                 line.find("/usr/lib") == std::string::npos && // ignore libraries
-                line.find("[stack]") == std::string::npos     // ignore the stack
+                line.find("[stack]") == std::string::npos     // ignore the stack (it's too volatile to be worthwhile)
             ) {
                 // parse start and end address;
                 std::vector<std::string> start_end = split_string(split_string(line, " ")[0], "-");
                 const mem_addr addr_start = std::stoull(start_end[0], nullptr, 16), 
                                addr_end = std::stoull(start_end[1], nullptr, 16);
                 _mem[std::string(std::format("{:x}", addr_start) + "-" + std::format("{:x}", addr_end))] = {};
-                // std::cout << addr_start <<  " to "  << addr_end << "\n";
+                // logger << addr_start <<  " to "  << addr_end << "\n";
             }
         }
     } else {
@@ -200,7 +202,7 @@ uint64_t MemoryTool::read_uint64_at(mem_addr addr) const {
 /* SEARCH METHODS */
 
 bool MemoryTool::search(uint8_t val) {
-    std::cout << "searching uint8_t...\n";
+    logger << "searching uint8_t...\n";
     attach_process();
     // clean search
     if (_search_results.size() == 0) {
@@ -216,21 +218,21 @@ bool MemoryTool::search(uint8_t val) {
                 offset++;
             }
         }
-        std::cout << "Found " << _search_results.size() << " results.\n";
+        logger << std::format("Found {:d} results.\n", _search_results.size());
     } else {
         std::erase_if(_search_results, [&](const mem_addr& addr) {
             uint8_t byte = read_uint8_at(addr);
-            if (byte == val) std::cout << std::format("0x{:x}: {:d}\n", addr, byte);
+            if (byte == val) logger << std::format("0x{:x}: {:d}\n", addr, byte);
             return byte != val;
         });
-        std::cout << _search_results.size() << " results remain.\n";
+        logger << std::format("{:d} results remain.\n", _search_results.size());
     }
     detach_process();
     return true;
 }
 
 bool MemoryTool::search(uint16_t val) {
-    std::cout << "searching uint16_t...\n";
+    logger << "searching uint16_t...\n";
     attach_process();
     // clean search
     if (_search_results.size() == 0) {
@@ -248,21 +250,21 @@ bool MemoryTool::search(uint16_t val) {
                 }
             }
         }
-        std::cout << "Found " << _search_results.size() << " results.\n";
+        logger << std::format("Found {:d} results.\n", _search_results.size());
     } else {
         std::erase_if(_search_results, [&](const mem_addr& addr) {
             uint16_t data = read_uint16_at(addr);
-            if (data == val) std::cout << std::format("0x{:x}: {:d}\n", addr, data);
+            if (data == val) logger << std::format("0x{:x}: {:d}\n", addr, data);
             return data != val;
         });
-        std::cout << _search_results.size() << " results remain.\n";
+        logger << std::format("{:d} results remain.\n", _search_results.size());
     }
     detach_process();
     return true;
 }
 
 bool MemoryTool::search(uint32_t val) {
-    std::cout << "searching uint32_t...\n";
+    logger << "searching uint32_t...\n";
     attach_process();
     // clean search
     if (_search_results.size() == 0) {
@@ -283,21 +285,21 @@ bool MemoryTool::search(uint32_t val) {
                 }
             }
         }
-        std::cout << "Found " << _search_results.size() << " results.\n";
+        logger << std::format("Found, {:d}, results.\n", _search_results.size());
     } else {
         std::erase_if(_search_results, [&](const mem_addr& addr) {
             uint32_t data = read_uint32_at(addr);
-            if (data == val) std::cout << std::format("0x{:x}: {:d}\n", addr, data);
+            if (data == val) logger << std::format("0x{:x}: {:d}\n", addr, data);
             return data != val;
         });
-        std::cout << _search_results.size() << " results remain.\n";
+        logger << std::format("{:d} results remain.\n", _search_results.size());
     }
     detach_process();
     return true;
 }
 
 bool MemoryTool::search(uint64_t val) {
-    std::cout << "searching uint64_t...\n";
+    logger << "searching uint64_t...\n";
     attach_process();
     // clean search
     if (_search_results.size() == 0) {
@@ -321,14 +323,14 @@ bool MemoryTool::search(uint64_t val) {
                 }
             }
         }
-        std::cout << "Found " << _search_results.size() << " results.\n";
+        logger << std::format("Found, {:d}, results.\n", _search_results.size());
     } else {
         std::erase_if(_search_results, [&](const mem_addr& addr) {
             uint64_t data = read_uint64_at(addr);
-            if (data == val) std::cout << std::format("0x{:x}: {:d}\n", addr, data);
+            if (data == val) logger << std::format("0x{:x}: {:d}\n", addr, data);
             return data != val;
         });
-        std::cout << _search_results.size() << " results remain.\n";
+        logger << std::format("{:d} results remain.\n", _search_results.size());
     }
     detach_process();
     return true;
@@ -336,7 +338,7 @@ bool MemoryTool::search(uint64_t val) {
 
 // TODO: We need to approximate how we search for floats for this to be useful 
 bool MemoryTool::search(float val) {
-    std::cout << "searching float...\n";
+    logger << "searching float...\n";
     attach_process();
     if (_search_results.size() == 0) {
         for (const auto& [region, bytes] : _mem) {
@@ -356,14 +358,14 @@ bool MemoryTool::search(float val) {
                 }
             }
         }
-        std::cout << "Found " << _search_results.size() << " results.\n";
+        logger << std::format("Found, {:d}, results.\n", _search_results.size());
     } else {
         std::erase_if(_search_results, [&](const mem_addr& addr) {
             float data = std::bit_cast<float>(read_uint32_at(addr));
-            if (data == val) std::cout << std::format("0x{:X}: {:f}\n", addr, data);
+            if (data == val) logger << std::format("0x{:X}: {:f}\n", addr, data);
             return data != val;
         });
-        std::cout << _search_results.size() << " results remain.\n";
+        logger << std::format("{:d} results remain.\n", _search_results.size());
     }
     detach_process();
     return true;
@@ -371,8 +373,8 @@ bool MemoryTool::search(float val) {
 
 /* WRITE METHODS */
 
-void MemoryTool::write(uint8_t val, uint64_t addr) const {
-    std::cout << std::format("writing uint8 to 0x{:X}...\n", addr);
+void MemoryTool::write(uint8_t val, mem_addr addr) const {
+    logger << std::format("writing uint8 to 0x{:X}...\n", addr);
     attach_process();
     mem_addr aligned_addr = addr & ~(WORD_SIZE - 1);
     size_t byte_offset = addr % WORD_SIZE;
@@ -385,7 +387,7 @@ void MemoryTool::write(uint8_t val, uint64_t addr) const {
     
     // TODO: My current method of setting bytes is inefficient, it would be
     // better if we did this with pure bit manipulation.
-    std::cout << std::format("word: {:X}\n", word);
+    logger << std::format("word: {:X}\n", word);
     std::array<int64_t, 8> bytes = {
                 word & 0xFF,
         (word >>  8) & 0xFF,
@@ -397,10 +399,12 @@ void MemoryTool::write(uint8_t val, uint64_t addr) const {
         (word >> 56) & 0xFF,
     };
 
+    bytes[byte_offset] = val;
+
     for (auto b : bytes) {
-        std::cout << std::format("{:02X} ", b);
+        logger << std::format("{:02X} ", b);
     }
-    std::cout << " => ";
+    logger << " => ";
 
     word =      bytes[0] | 
         (bytes[1] <<  8) | 
@@ -412,9 +416,9 @@ void MemoryTool::write(uint8_t val, uint64_t addr) const {
         (bytes[7] << 56);
 
     for (auto b : bytes) {
-        std::cout << std::format("{:02X} ", b);
+        logger << std::format("{:02X} ", b);
     }
-    std::cout << "\n";
+    logger << "\n";
 
     int res = ptrace(PTRACE_POKEDATA, _pid, (void*)aligned_addr, (void*)word);
     if (res == -1) {
@@ -424,8 +428,8 @@ void MemoryTool::write(uint8_t val, uint64_t addr) const {
     detach_process();
 }
 
-void MemoryTool::write(uint16_t val, uint64_t addr) const {
-    std::cout << std::format("writing uint16 to 0x{:X}...\n", addr);
+void MemoryTool::write(uint16_t val, mem_addr addr) const {
+    logger << std::format("writing uint16 to 0x{:X}...\n", addr);
     attach_process();
     mem_addr aligned_addr = addr & ~(WORD_SIZE - 1);
     size_t byte_offset = addr % WORD_SIZE;
@@ -458,11 +462,11 @@ void MemoryTool::write(uint16_t val, uint64_t addr) const {
         (bytes[5] << 40) |
         (bytes[6] << 48) |
         (bytes[7] << 56);
-    std::cout << std::format("0x{:016X}: ", addr);
+    logger << std::format("0x{:016X}: ", addr);
     for (auto b : bytes) {
-        std::cout << std::format("{:02X} ", b);
+        logger << std::format("{:02X} ", b);
     }
-    std::cout << std::endl;
+    logger << "\n";
 
     int res = ptrace(PTRACE_POKEDATA, _pid, (void*)aligned_addr, (void*)word);
     if (res == -1) {
@@ -472,8 +476,8 @@ void MemoryTool::write(uint16_t val, uint64_t addr) const {
     detach_process();
 }
 
-void MemoryTool::write(uint32_t val, uint64_t addr) const {
-    std::cout << std::format("writing uint32 to 0x{:X}...\n", addr);
+void MemoryTool::write(uint32_t val, mem_addr addr) const {
+    logger << std::format("writing uint32 to 0x{:X}...\n", addr);
     attach_process();
     mem_addr aligned_addr = addr & ~(WORD_SIZE - 1);
     size_t byte_offset = addr % WORD_SIZE;
@@ -481,7 +485,7 @@ void MemoryTool::write(uint32_t val, uint64_t addr) const {
     long word = ptrace(PTRACE_PEEKDATA, _pid, (void*)aligned_addr, nullptr);
     if (word == -1 && errno != 0) {
         perror("ptrace PEEKDATA");
-        std::cout << val << ", " << addr << "\n";
+        logger << std::format("0x{:x}: {:d}\n", addr, val);
         exit(EXIT_FAILURE);
     }
     
@@ -495,7 +499,7 @@ void MemoryTool::write(uint32_t val, uint64_t addr) const {
         (word >> 48) & 0xFF,
         (word >> 56) & 0xFF,
     };
-    std::cout << std::format("byte offset: {:d}\n", byte_offset);
+
     bytes[byte_offset] =   (val >>  0) & 0xFF;
     bytes[byte_offset+1] = (val >>  8) & 0xFF;
     bytes[byte_offset+2] = (val >> 16) & 0xFF;
@@ -510,11 +514,11 @@ void MemoryTool::write(uint32_t val, uint64_t addr) const {
         (bytes[6] << 48) |
         (bytes[7] << 56);
 
-    std::cout << std::format("0x{:016X}: ", addr);
+    logger << std::format("0x{:016X}: ", addr);
     for (const auto& b : bytes) {
-        std::cout << std::format("{:02X} ", b);
+        logger << std::format("{:02X} ", b);
     }
-    std::cout << std::endl;
+    logger << "\n";
 
     int res = ptrace(PTRACE_POKEDATA, _pid, (void*)aligned_addr, (void*)word);
     if (res == -1) {
@@ -524,7 +528,7 @@ void MemoryTool::write(uint32_t val, uint64_t addr) const {
     detach_process();
 }
 
-void MemoryTool::write(uint64_t val, uint64_t addr) const {
+void MemoryTool::write(uint64_t val, mem_addr addr) const {
     attach_process();
     errno = 0;
     mem_addr aligned_addr = addr & ~(WORD_SIZE - 1);
@@ -554,11 +558,11 @@ void MemoryTool::write(uint64_t val, uint64_t addr) const {
         (bytes[6] << 48) |
         (bytes[7] << 56);
 
-    std::cout << std::format("0x{:016X}: ", addr);
+    logger << std::format("0x{:016X}: ", addr);
     for (auto b : bytes) {
-        std::cout << std::format("{:02X} ", b);
+        logger << std::format("{:02X} ", b);
     }
-    std::cout << std::endl;
+    logger << "\n";
 
     int res = ptrace(PTRACE_POKEDATA, _pid, (void*)aligned_addr, (void*)word);
     if (res == -1) {
@@ -568,7 +572,7 @@ void MemoryTool::write(uint64_t val, uint64_t addr) const {
     detach_process();
 }
 
-void MemoryTool::write(float val, uint64_t addr) const {
+void MemoryTool::write(float val, mem_addr addr) const {
     attach_process();
     errno = 0;
     mem_addr aligned_addr = addr & ~(WORD_SIZE - 1);
@@ -583,7 +587,7 @@ void MemoryTool::write(float val, uint64_t addr) const {
     uint32_t float_bits = std::bit_cast<uint32_t>(val);
     uint8_t* bytes = reinterpret_cast<uint8_t*>(&word);
     std::memcpy(bytes + byte_offset, &float_bits, sizeof(float));
-    std::cout << std::format("0x{:016X}: writing float {:f}\n", addr, val);
+    logger << std::format("0x{:016X}: writing float {:f}\n", addr, val);
 
     int res = ptrace(PTRACE_POKEDATA, _pid, (void*)aligned_addr, (void*)word);
     if (res == -1) {
@@ -605,12 +609,12 @@ bool MemoryTool::attach_process() const {
 std::vector<mem_addr> MemoryTool::list_search_results() const {
     std::vector<mem_addr> res;
     if (_search_results.size() == 0) {
-        std::cout << "There are no search results...\n";
+        logger << "There are no search results...\n";
         return {};
     }
     int i = 0;
     for (const mem_addr addr : _search_results) {
-        std::cout << std::format("{:d}. 0x{:x}\n", ++i, addr);
+        logger << std::format("{:d}. 0x{:x}\n", ++i, addr);
         res.emplace_back(addr);
     }
     return res;
@@ -634,11 +638,11 @@ bool MemoryTool::detach_process() const {
 
 void MemoryTool::clear_results() {
     _search_results = {};
-    std::cout << "search results cleared...\n";
+    logger << "search results cleared...\n";
 }
 
 void MemoryTool::set_datatype_mode(DatatypeMode mode) {
-    std::cout << std::format("set datatype mode to: {:s}\n", datatype_mode_string_map[mode].second);
+    logger << std::format("set datatype mode to: {:s}\n", datatype_mode_string_map[mode].second);
     _datatype_mode = mode;
 }
 
